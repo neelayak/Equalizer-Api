@@ -1,0 +1,124 @@
+
+public class EqualizerApi {
+    public static String PREF_AUTOSTART = "autostart";
+    private static Integer PRIORITY = Integer.valueOf(100);
+    private static Integer SESSION = Integer.valueOf(0);
+    private static Integer[] mBandsValue;
+    private static BassBoost mBb;
+    private static Equalizer mEq;
+    private static Integer mSession;
+    private static Virtualizer mVirt;
+
+    public static void init(Integer session) {
+        if (session == null) {
+            session = SESSION;
+        }
+        mSession = session;
+        mEq = new Equalizer(PRIORITY.intValue(), mSession.intValue());
+        mVirt = new Virtualizer(PRIORITY.intValue(), mSession.intValue());
+        mBb = new BassBoost(PRIORITY.intValue(), mSession.intValue());
+        mBandsValue = new Integer[getNumberOfBands()];
+    }
+
+    public static void destroy() {
+        mEq.release();
+        mVirt.release();
+        mBb.release();
+    }
+
+    public static void setBassBoostEnabled(boolean flag) {
+        mBb.setEnabled(flag);
+    }
+
+    public static void setBassBoostStrength(int strength) {
+        mBb.setStrength((short) strength);
+    }
+
+    public static boolean getBassBoostEnabled() {
+        return mBb.getEnabled();
+    }
+
+    public static int getBassBoostStrength() {
+        return mBb.getRoundedStrength();
+    }
+
+    public static void setVirtualizerEnabled(boolean flag) {
+        mVirt.setEnabled(flag);
+    }
+
+    public static void setVirtualizerStrength(int strength) {
+        mVirt.setStrength((short) strength);
+    }
+
+    public static boolean getVirtualizerEnabled() {
+        return mVirt.getEnabled();
+    }
+
+    public static int getVirtualizerStrength() {
+        return mVirt.getRoundedStrength();
+    }
+
+    public static void setEqualizerEnabled(boolean flag) {
+        mEq.setEnabled(flag);
+    }
+
+    public static void setBandLevel(int band, int level) {
+        double level1;
+        double level2;
+        mBandsValue[band] = Integer.valueOf(level);
+        if ((band + 1) % 2 == 0) {
+            level1 = (double) getBandLevel(band - 1);
+            level2 = (double) getBandLevel(band);
+        } else {
+            level1 = (double) getBandLevel(band);
+            level2 = (double) getBandLevel(band + 1);
+        }
+        double index = ((((double) getNumberOfBands()) / 2.0d) - ((double) band)) / 12.0d;
+        double index1 = 1.0d - index;
+        double index2 = 1.0d + index;
+        if (level1 > 0.0d) {
+            level1 *= index2;
+        } else {
+            level1 /= index1;
+        }
+        if (level2 > 0.0d) {
+            level2 /= index2;
+        } else {
+            level2 *= index1;
+        }
+        mEq.setBandLevel((short) ((int) Math.ceil((double) (band / 2))), (short) ((int) Math.ceil((level1 + level2) / 2.0d)));
+    }
+
+    public static boolean getEqualizerEnabled() {
+        return mEq.getEnabled();
+    }
+
+    public static int getBandLevel(int band) {
+        if (mBandsValue == null || mBandsValue[band] == null) {
+            return 0;
+        }
+        return mBandsValue[band].intValue();
+    }
+
+    public static int getNumberOfBands() {
+        return mEq.getNumberOfBands() * 2;
+    }
+
+    public static int getMinBandLevelRange() {
+        return mEq.getBandLevelRange()[0];
+    }
+
+    public static int getMaxBandLevelRange() {
+
+        return mEq.getBandLevelRange()[1];
+    }
+
+    public static int getBandFreq(int band) {
+        int freq = mEq.getCenterFreq((short) ((int) Math.ceil((double) (band / 2))));
+        int correct = (freq / 100) * 30;
+        if ((band + 1) % 2 == 0) {
+            return freq + correct;
+        }
+        return freq - correct;
+    }
+}
